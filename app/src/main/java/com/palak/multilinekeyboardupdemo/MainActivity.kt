@@ -45,7 +45,8 @@ class MainActivity : AppCompatActivity(), KeyboardHeightObserver {
         }
         else {
             val et: EditText = Utils.getCurrentFocusedEdittext(this,findViewById(android.R.id.content)) ?: return
-            if(et.y.toInt() <= height){
+            val keyboardHeightFromTop = height - nestedScroll.top
+            if(et.y <= keyboardHeightFromTop){
                 return
             }
             params.height = (keyboardHeightProvider.getMaximumHeightOfKeyboard() + viewTempHeight) - btnSubmit.height
