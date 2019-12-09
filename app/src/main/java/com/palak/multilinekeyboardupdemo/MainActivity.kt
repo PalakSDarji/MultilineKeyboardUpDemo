@@ -21,6 +21,7 @@ class MainActivity : AppCompatActivity(), KeyboardHeightObserver {
 
     override fun onPause() {
         super.onPause()
+        //Dont delete this
         keyboardHeightProvider.setKeyboardHeightObserver(null)
     }
 
