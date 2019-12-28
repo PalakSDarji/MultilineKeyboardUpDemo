@@ -1,12 +1,16 @@
 package com.palak.multilinekeyboardupdemo
 
-import androidx.appcompat.app.AppCompatActivity
+import android.graphics.Rect
 import android.os.Bundle
+import android.view.View
+import android.view.ViewGroup
 import android.widget.EditText
+import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import kotlinx.android.synthetic.main.activity_main.*
 
-class MainActivity : AppCompatActivity(), KeyboardHeightObserver {
+
+class MainActivity : AppCompatActivity(){
 
     private lateinit var keyboardHeightProvider: KeyboardHeightProvider
 
@@ -15,19 +19,44 @@ class MainActivity : AppCompatActivity(), KeyboardHeightObserver {
         setContentView(R.layout.activity_main)
 
         keyboardHeightProvider = KeyboardHeightProvider(this)
-        root.post { keyboardHeightProvider.start() }
+        root.post { keyboardHeightProvider.start(nestedScroll, root, viewSpace) }
+
     }
 
 
     override fun onPause() {
         super.onPause()
         //Dont delete this
-        keyboardHeightProvider.setKeyboardHeightObserver(null)
+        //keyboardHeightProvider.setKeyboardHeightObserver(null)
     }
 
     override fun onResume() {
         super.onResume()
-        keyboardHeightProvider.setKeyboardHeightObserver(this)
+       // keyboardHeightProvider.setKeyboardHeightObserver(this)
+
+
+    }
+
+    private fun printEditTextScrollY() {
+        et1.setText(""+getLocationOfView(et1,nestedScroll).top)
+        et2.setText(""+getLocationOfView(et2,nestedScroll).top)
+        et3.setText(""+getLocationOfView(et3,nestedScroll).top)
+        et4.setText(""+getLocationOfView(et4,nestedScroll).top)
+        et5.setText(""+getLocationOfView(et5,nestedScroll).top)
+        et6.setText(""+getLocationOfView(et6,nestedScroll).top)
+        etMultiline1.setText(""+getLocationOfView(etMultiline1,nestedScroll).top)
+        etMultiline2.setText(""+getLocationOfView(etMultiline2,nestedScroll).top)
+
+    }
+
+    private fun getLocationOfView(childView : View, parentViewGroup: ViewGroup) : Rect{
+        val offsetViewBounds = Rect()
+        //returns the visible bounds
+        childView.getDrawingRect(offsetViewBounds)
+        // calculates the relative coordinates to the parent
+        parentViewGroup.offsetDescendantRectToMyCoords(childView, offsetViewBounds)
+
+        return offsetViewBounds
     }
 
     override fun onDestroy() {
@@ -35,24 +64,4 @@ class MainActivity : AppCompatActivity(), KeyboardHeightObserver {
         keyboardHeightProvider.close()
     }
 
-    override fun onKeyboardHeightChanged(height: Int, orientation: Int) {
-
-        val viewTempHeight = resources.getDimension(R.dimen.margin_20).toInt()
-        val params = viewSpace.layoutParams as ConstraintLayout.LayoutParams
-
-        if(height == 0){
-            params.height = viewTempHeight
-            viewSpace.layoutParams = params
-        }
-        else {
-            val et: EditText = Utils.getCurrentFocusedEdittext(this,findViewById(android.R.id.content)) ?: return
-            val keyboardHeightFromTop = height - nestedScroll.top
-            if(et.y <= keyboardHeightFromTop){
-                return
-            }
-            params.height = (keyboardHeightProvider.getMaximumHeightOfKeyboard() + viewTempHeight) - btnSubmit.height
-            viewSpace.layoutParams = params
-            Utils.scrollToView(this, nestedScroll, et)
-        }
-    }
 }
