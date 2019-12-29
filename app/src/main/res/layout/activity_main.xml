@@ -15,7 +15,7 @@
         android:layout_centerHorizontal="true"
         android:layout_margin="35dp"
         android:text="Long Form"
-        android:visibility="gone"
+        android:visibility="visible"
         android:textSize="35sp" />
 
     <androidx.core.widget.NestedScrollView

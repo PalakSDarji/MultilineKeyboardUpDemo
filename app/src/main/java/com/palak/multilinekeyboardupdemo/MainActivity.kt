@@ -19,7 +19,7 @@ class MainActivity : AppCompatActivity(){
         setContentView(R.layout.activity_main)
 
         keyboardHeightProvider = KeyboardHeightProvider(this)
-        root.post { keyboardHeightProvider.start(nestedScroll, root, viewSpace) }
+        root.post { keyboardHeightProvider.start(nestedScroll, root, viewSpace, 0, btnSubmit.height) }
 
     }
 

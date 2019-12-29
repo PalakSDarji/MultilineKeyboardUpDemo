@@ -71,6 +71,8 @@ public class KeyboardHeightProvider extends PopupWindow {
     private int paddingTop = 0;
     private float scrollDY = 0;
 
+    private int heightToCutFromScrollTop;
+    private int heightToCutFromBottom;
 
     /**
      * Construct a new KeyboardHeightProvider
@@ -111,7 +113,8 @@ public class KeyboardHeightProvider extends PopupWindow {
      * PopupWindows are not allowed to be registered before the onResume has finished
      * of the Activity.
      */
-    public void start(NestedScrollView nestedScrollView, final ViewGroup parentViewGroup, View viewSpace) {
+    public void start(NestedScrollView nestedScrollView, final ViewGroup parentViewGroup, View viewSpace,
+                      int heightToCutFromScrollTop, int heightToCutFromBottom) {
 
         if (!isShowing() && parentView.getWindowToken() != null) {
             setBackgroundDrawable(new ColorDrawable(0));
@@ -120,6 +123,8 @@ public class KeyboardHeightProvider extends PopupWindow {
 
         this.nestedScroll = nestedScrollView;
         this.viewSpace = viewSpace;
+        this.heightToCutFromScrollTop = heightToCutFromScrollTop;
+        this.heightToCutFromBottom = heightToCutFromBottom;
 
         nestedScroll.post(new Runnable() {
             @Override
@@ -251,51 +256,58 @@ public class KeyboardHeightProvider extends PopupWindow {
 
     private void onKeyboardHeightChanged(int height, int orientation) {
 
-        if(scrollViewRect == null) return;
+        if (scrollViewRect == null) return;
 
-        Log.v("KEYBH","keyboardHeight " + height + ",  scrollViewRectHeight " + scrollViewRect.height());
+        Log.v("KEYBH", "keyboardHeight " + height + ",  scrollViewRectHeight " + scrollViewRect.height());
 
-        int viewPortHeight = scrollViewRect.height() - height;
-        Log.v("KEYBH","viewPortHeight " + viewPortHeight);
+        int viewPortHeight = scrollViewRect.height() - (height - heightToCutFromBottom) - paddingTop;
+        Log.v("KEYBH", "viewPortHeight " + viewPortHeight);
 
         int viewTempHeight = (int) activity.getResources().getDimension(R.dimen.margin_20);
         ViewGroup.LayoutParams params = viewSpace.getLayoutParams();
 
-        if(height == 0){
+        if (height <= 0) {
             params.height = viewTempHeight;
             viewSpace.setLayoutParams(params);
-        }
-        else {
+        } else {
             EditText et = getCurrentFocusedEdittext(activity.findViewById(android.R.id.content));
 
-            if(et == null) return;
+            if (et == null) return;
 
-            Rect rectOfEt = getLocationOfView(et,nestedScroll);
+            Rect rectOfEt = getLocationOfView(et, nestedScroll);
+            //rectOfEt.top = rectOfEt.top + heightToCutFromScrollTop;
 
-            if(nestedScroll.getScrollY() + viewPortHeight < rectOfEt.bottom){
+            Log.v("KEYBH", "nestedScroll.getScrollY: " + nestedScroll.getScrollY() + ", heightToCutFromScrollTop: " + heightToCutFromScrollTop);
+
+            int currNestedScrollY = nestedScroll.getScrollY() + heightToCutFromScrollTop;
+
+            Log.v("KEYBH", "currNestedScrollY: " + currNestedScrollY);
+
+            if (nestedScroll.getScrollY() + viewPortHeight < rectOfEt.bottom) {
 
                 //that means, view is below the keyboard, scroll it up. align its bottom to keyboard's top.
-                Log.v("KEYBH", "scroll Down : viewPortHeight: " + viewPortHeight +", rectOfEt.bottom: " + rectOfEt.bottom);
+                Log.v("KEYBH", "scroll Down : nestedScroll.getScrollY(): " + nestedScroll.getScrollY() + ", viewPortHeight: " + viewPortHeight + ", rectOfEt.bottom: " + rectOfEt.bottom);
 
                 float currentYPostionInViewPort = rectOfEt.bottom - nestedScroll.getScrollY();
 
-                Log.v("KEYBH","et.bottom: " +et.getBottom() +", viewPortHeight: " + viewPortHeight + ", Total scrollBy : " + (et.getBottom() - viewPortHeight));
+                Log.v("KEYBH", "rectOfEt.bottom: " + rectOfEt.bottom + ", nestedScroll.getScrollY(): " + nestedScroll.getScrollY() + ", currentYPostionInViewPort : " + currentYPostionInViewPort);
 
                 scrollDY = currentYPostionInViewPort - viewPortHeight;
-            }
-            else if (rectOfEt.top < nestedScroll.getScrollY()){
+
+                Log.v("KEYBH", "currentYPostionInViewPort: " + currentYPostionInViewPort + ", viewPortHeight: " + viewPortHeight);
+
+            } else if (rectOfEt.top < currNestedScrollY) {
                 //that means, view is slightly visible and is at top of scrollview. scroll it bottom a bit.
                 //align its top to scrollview's top.
 
-                Log.v("KEYBH","scroll Up : scrollViewRect.top: " + scrollViewRect.top + ", rectOfEt.top: " + rectOfEt.top);
+                Log.v("KEYBH", "scroll Up : scrollViewRect.top: " + scrollViewRect.top + ", rectOfEt.top: " + rectOfEt.top);
 
-                scrollDY = rectOfEt.top - nestedScroll.getScrollY() + paddingTop;
+                scrollDY = rectOfEt.top - currNestedScrollY;
 
-                Log.v("KEYBH","nestedScroll.scrollY : " + nestedScroll.getScrollY() + ", rectOfEt.top: " + rectOfEt.top);
+                Log.v("KEYBH", "nestedScroll.scrollY : " + currNestedScrollY + ", rectOfEt.top: " + rectOfEt.top);
 
-            }
-            else{
-                Log.v("KEYBH","No need to scroll");
+            } else {
+                Log.v("KEYBH", "No need to scroll");
                 return;
             }
 
@@ -305,14 +317,14 @@ public class KeyboardHeightProvider extends PopupWindow {
             viewSpace.setLayoutParams(params);
             //Utils.scrollToView(this, nestedScroll, et)
 
-            if(scrollDY != 0){
+            if (scrollDY != 0) {
                 nestedScroll.postDelayed(new Runnable() {
                     @Override
                     public void run() {
-                        Log.v("KEYBH","scrollDY: " + scrollDY);
+                        Log.v("KEYBH", "scrollDY: " + scrollDY);
                         nestedScroll.smoothScrollBy(0, (int) scrollDY);
                     }
-                },200);
+                }, 200);
             }
         }
     }
