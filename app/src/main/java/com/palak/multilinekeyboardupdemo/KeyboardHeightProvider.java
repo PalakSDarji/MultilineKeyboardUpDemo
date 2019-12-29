@@ -10,7 +10,9 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.view.ViewTreeObserver.OnGlobalLayoutListener;
+import android.view.WindowManager;
 import android.view.WindowManager.LayoutParams;
 import android.widget.EditText;
 import android.widget.PopupWindow;
@@ -31,7 +33,7 @@ public class KeyboardHeightProvider extends PopupWindow {
     /**
      * The keyboard height observer
      */
-    //private KeyboardHeightObserver observer;
+    private KeyboardHeightObserver observer;
 
     /**
      * The cached landscape height of the keyboard
@@ -68,11 +70,12 @@ public class KeyboardHeightProvider extends PopupWindow {
 
     private Rect scrollViewRect = null;
 
-    private int paddingTop = 0;
-    private float scrollDY = 0;
-
+    private int paddingTop;
+    private float scrollDY;
     private int heightToCutFromScrollTop;
     private int heightToCutFromBottom;
+    private int closingHeight;
+
 
     /**
      * Construct a new KeyboardHeightProvider
@@ -87,15 +90,15 @@ public class KeyboardHeightProvider extends PopupWindow {
         this.popupView = inflator.inflate(R.layout.popupwindow, null, false);
         setContentView(popupView);
 
-        setSoftInputMode(LayoutParams.SOFT_INPUT_ADJUST_RESIZE | LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+        setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE | WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
         setInputMethodMode(PopupWindow.INPUT_METHOD_NEEDED);
 
         parentView = activity.findViewById(android.R.id.content);
 
         setWidth(0);
-        setHeight(LayoutParams.MATCH_PARENT);
+        setHeight(WindowManager.LayoutParams.MATCH_PARENT);
 
-        popupView.getViewTreeObserver().addOnGlobalLayoutListener(new OnGlobalLayoutListener() {
+        popupView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
 
             @Override
             public void onGlobalLayout() {
@@ -129,22 +132,18 @@ public class KeyboardHeightProvider extends PopupWindow {
         nestedScroll.post(new Runnable() {
             @Override
             public void run() {
-
-                scrollViewRect = getLocationOfView(nestedScroll,parentViewGroup);
-                Log.v("KEYBH", "scrollViewRect top : "+ scrollViewRect.top + ", bottom " + scrollViewRect.bottom + ", height: " + scrollViewRect.height());
+                scrollViewRect = getLocationOfView(nestedScroll, parentViewGroup);
+                Log.v("KEYBH", "scrollViewRect top : " + scrollViewRect.top + ", bottom " + scrollViewRect.bottom + ", height: " + scrollViewRect.height());
             }
         });
 
-        setListenerOnFocusedEdittext(activity.findViewById(android.R.id.content),
-                new View.OnFocusChangeListener() {
-                    @Override
-                    public void onFocusChange(View view, boolean hasFocus) {
-                        if (hasFocus) onKeyboardHeightChanged(getMaximumHeightOfKeyboard(), 0);
-                    }
-                });
-
+        setListenerOnFocusedEdittext(activity.findViewById(android.R.id.content), new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View view, boolean hasFocus) {
+                if (hasFocus) onKeyboardHeightChanged(getMaximumHeightOfKeyboard(), 0);
+            }
+        });
     }
-
 
     private Rect getLocationOfView(View childView, ViewGroup parentViewGroup) {
         Rect offsetViewBounds = new Rect();
@@ -160,7 +159,7 @@ public class KeyboardHeightProvider extends PopupWindow {
      * this provider will not be used anymore.
      */
     public void close() {
-        //this.observer = null;
+        this.observer = null;
         dismiss();
     }
 
@@ -172,7 +171,7 @@ public class KeyboardHeightProvider extends PopupWindow {
      * @param observer The observer to be added to this provider.
      */
     public void setKeyboardHeightObserver(KeyboardHeightObserver observer) {
-        //this.observer = observer;
+        this.observer = observer;
     }
 
     /**
@@ -223,11 +222,11 @@ public class KeyboardHeightProvider extends PopupWindow {
 
     private void notifyKeyboardHeightChanged(int height, int orientation) {
         //if (observer != null) {
-            if (height == 0) {
-                diffHeightList.clear();
-            }
-            diffHeightList.add(height);
-            onKeyboardHeightChanged(height, orientation);
+        if (height == 0) {
+            diffHeightList.clear();
+        }
+        diffHeightList.add(height);
+        onKeyboardHeightChanged(height, orientation);
         //}
     }
 
@@ -254,19 +253,21 @@ public class KeyboardHeightProvider extends PopupWindow {
     }
 
 
-    private void onKeyboardHeightChanged(int height, int orientation) {
+    public void onKeyboardHeightChanged(int height, int orientation) {
 
         if (scrollViewRect == null) return;
 
         Log.v("KEYBH", "keyboardHeight " + height + ",  scrollViewRectHeight " + scrollViewRect.height());
 
-        int viewPortHeight = scrollViewRect.height() - (height - heightToCutFromBottom) - paddingTop;
+        int viewPortHeight = scrollViewRect.height() - (height - heightToCutFromBottom - closingHeight) - paddingTop;
         Log.v("KEYBH", "viewPortHeight " + viewPortHeight);
 
         int viewTempHeight = (int) activity.getResources().getDimension(R.dimen.margin_20);
         ViewGroup.LayoutParams params = viewSpace.getLayoutParams();
 
         if (height <= 0) {
+            //This height is closing height. save it.
+            closingHeight = height;
             params.height = viewTempHeight;
             viewSpace.setLayoutParams(params);
         } else {
@@ -333,7 +334,7 @@ public class KeyboardHeightProvider extends PopupWindow {
     /**
      * This method set touch listener on all the views which are not edittext, which hides the keyboard.
      */
-    private EditText getCurrentFocusedEdittext(View view){
+    private EditText getCurrentFocusedEdittext(View view) {
 
         // Set up touch listener for non-text box views to hide keyboard.
         if (view instanceof EditText && view.hasFocus()) {
@@ -343,13 +344,27 @@ public class KeyboardHeightProvider extends PopupWindow {
         //If a layout container, iterate over children and seed recursion.
         if (view instanceof ViewGroup) {
             int count = ((ViewGroup) view).getChildCount();
-            for (int i=0;i<count; i++) {
+            for (int i = 0; i < count; i++) {
                 View innerView = ((ViewGroup) view).getChildAt(i);
-                EditText et =  getCurrentFocusedEdittext(innerView);
-                if(et != null) return et;
+                EditText et = getCurrentFocusedEdittext(innerView);
+                if (et != null) return et;
             }
         }
 
         return null;
     }
+}
+
+
+interface KeyboardHeightObserver {
+
+    /**
+     * Called when the keyboard height has changed, 0 means keyboard is closed,
+     * >= 1 means keyboard is opened.
+     *
+     * @param height        The height of the keyboard in pixels
+     * @param orientation   The orientation either: Configuration.ORIENTATION_PORTRAIT or
+     *                      Configuration.ORIENTATION_LANDSCAPE
+     */
+    void onKeyboardHeightChanged(int height, int orientation);
 }
