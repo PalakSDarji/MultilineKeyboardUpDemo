@@ -11,12 +11,9 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
-import android.view.ViewTreeObserver.OnGlobalLayoutListener;
 import android.view.WindowManager;
-import android.view.WindowManager.LayoutParams;
 import android.widget.EditText;
 import android.widget.PopupWindow;
-import android.widget.ScrollView;
 
 import androidx.core.widget.NestedScrollView;
 
