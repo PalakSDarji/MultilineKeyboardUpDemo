@@ -20,7 +20,6 @@ class MainActivity : AppCompatActivity(){
 
         keyboardHeightProvider = KeyboardHeightProvider(this)
         root.post { keyboardHeightProvider.start(nestedScroll, root, viewSpace, 0, btnSubmit.height) }
-
     }
 
 
@@ -37,31 +36,8 @@ class MainActivity : AppCompatActivity(){
 
     }
 
-    private fun printEditTextScrollY() {
-        et1.setText(""+getLocationOfView(et1,nestedScroll).top)
-        et2.setText(""+getLocationOfView(et2,nestedScroll).top)
-        et3.setText(""+getLocationOfView(et3,nestedScroll).top)
-        et4.setText(""+getLocationOfView(et4,nestedScroll).top)
-        et5.setText(""+getLocationOfView(et5,nestedScroll).top)
-        et6.setText(""+getLocationOfView(et6,nestedScroll).top)
-        etMultiline1.setText(""+getLocationOfView(etMultiline1,nestedScroll).top)
-        etMultiline2.setText(""+getLocationOfView(etMultiline2,nestedScroll).top)
-
-    }
-
-    private fun getLocationOfView(childView : View, parentViewGroup: ViewGroup) : Rect{
-        val offsetViewBounds = Rect()
-        //returns the visible bounds
-        childView.getDrawingRect(offsetViewBounds)
-        // calculates the relative coordinates to the parent
-        parentViewGroup.offsetDescendantRectToMyCoords(childView, offsetViewBounds)
-
-        return offsetViewBounds
-    }
-
     override fun onDestroy() {
         super.onDestroy()
         keyboardHeightProvider.close()
     }
-
 }
