@@ -13,8 +13,10 @@ import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.widget.NestedScrollView;
 
 import java.util.Collections;
@@ -122,7 +124,7 @@ public class KeyboardHeightProvider extends PopupWindow {
         }
 
         this.nestedScroll = nestedScrollView;
-        this.viewSpace = viewSpace;
+        this.viewSpace = insertView();
         this.heightToCutFromScrollTop = heightToCutFromScrollTop;
         this.heightToCutFromBottom = heightToCutFromBottom;
 
@@ -349,6 +351,29 @@ public class KeyboardHeightProvider extends PopupWindow {
         }
 
         return null;
+    }
+
+    //TODO in progress.
+    private View insertView(){
+
+        View viewToInsert = new View(activity);
+        int heightDefault = activity.getResources().getDimensionPixelSize(R.dimen.margin_20);
+        viewToInsert.setBackgroundResource(android.R.color.transparent);
+
+        if(nestedScroll.getChildCount() == 0) return viewToInsert;
+        View firstChild = nestedScroll.getChildAt(0);
+
+        if(firstChild instanceof ConstraintLayout){
+
+            ConstraintLayout.LayoutParams layoutParams = new ConstraintLayout.LayoutParams(ConstraintLayout.LayoutParams.MATCH_PARENT, heightDefault);
+            ((ConstraintLayout) firstChild).addView(viewToInsert,layoutParams);
+        }
+        else if(firstChild instanceof LinearLayout){
+            LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(ConstraintLayout.LayoutParams.MATCH_PARENT, heightDefault);
+            ((LinearLayout) firstChild).addView(viewToInsert,layoutParams);
+        }
+
+        return viewToInsert;
     }
 }
 

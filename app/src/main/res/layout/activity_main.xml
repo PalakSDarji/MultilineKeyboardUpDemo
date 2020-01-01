@@ -151,13 +151,13 @@
                 android:padding="10dp"
                 app:layout_constraintTop_toBottomOf="@+id/etMultiline2" />
 
-            <View
+            <!--<View
                 android:id="@+id/viewSpace"
                 android:layout_width="match_parent"
                 android:background="@android:color/transparent"
                 app:layout_constraintTop_toBottomOf="@+id/et6"
                 android:layout_height="@dimen/margin_20"
-                />
+                />-->
 
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.core.widget.NestedScrollView>
