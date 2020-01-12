@@ -1,20 +1,20 @@
 package com.palak.multilinekeyboardupdemo
 
-import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import kotlinx.android.synthetic.main.activity_main.*
+import android.os.Bundle
+import kotlinx.android.synthetic.main.activity_main2.*
 
+class Main2Activity : AppCompatActivity() {
 
-class MainActivity : AppCompatActivity(){
 
     private lateinit var multiLineKeyboardHeightAdjuster: MultiLineKeyboardHeightAdjuster
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        setContentView(R.layout.activity_main2)
 
         multiLineKeyboardHeightAdjuster = MultiLineKeyboardHeightAdjuster(this)
-        root.post { multiLineKeyboardHeightAdjuster.start(nestedScroll, root, 0, btnSubmit.height) }
+        rootView.post { multiLineKeyboardHeightAdjuster.start(scroll, rootView, 0, 0) }
     }
 
     override fun onDestroy() {

@@ -5,6 +5,7 @@ import android.content.res.Configuration;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
+import android.os.Build;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -16,7 +17,9 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 
+import androidx.annotation.RequiresApi;
 import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.core.widget.NestedScrollView;
 
 import java.util.Collections;
@@ -27,7 +30,7 @@ import java.util.Set;
  * The keyboard height provider, this class uses a PopupWindow
  * to calculate the window height when the floating keyboard is opened and closed.
  */
-public class KeyboardHeightProvider extends PopupWindow {
+public class MultiLineKeyboardHeightAdjuster extends PopupWindow {
 
     /**
      * The keyboard height observer
@@ -55,7 +58,7 @@ public class KeyboardHeightProvider extends PopupWindow {
     private View parentView;
 
     /**
-     * The root activity that uses this KeyboardHeightProvider
+     * The root activity that uses this MultiLineKeyboardHeightAdjuster
      */
     private Activity activity;
 
@@ -77,11 +80,11 @@ public class KeyboardHeightProvider extends PopupWindow {
 
 
     /**
-     * Construct a new KeyboardHeightProvider
+     * Construct a new MultiLineKeyboardHeightAdjuster
      *
      * @param activity The parent activity
      */
-    public KeyboardHeightProvider(Activity activity) {
+    public MultiLineKeyboardHeightAdjuster(Activity activity) {
         super(activity);
         this.activity = activity;
 
@@ -111,12 +114,12 @@ public class KeyboardHeightProvider extends PopupWindow {
     }
 
     /**
-     * Start the KeyboardHeightProvider, this must be called after the onResume of the Activity.
+     * Start the MultiLineKeyboardHeightAdjuster, this must be called after the onResume of the Activity.
      * PopupWindows are not allowed to be registered before the onResume has finished
      * of the Activity.
      */
-    public void start(NestedScrollView nestedScrollView, final ViewGroup parentViewGroup, View viewSpace,
-                      int heightToCutFromScrollTop, int heightToCutFromBottom) {
+    public void start(NestedScrollView nestedScrollView, final ViewGroup parentViewGroup,
+                      int heightToCutFromScrollTop, int heightToCutFromBottom) throws Exception {
 
         if (!isShowing() && parentView.getWindowToken() != null) {
             setBackgroundDrawable(new ColorDrawable(0));
@@ -311,11 +314,8 @@ public class KeyboardHeightProvider extends PopupWindow {
                 return;
             }
 
-
-            //params.height = (keyboardHeightProvider.getMaximumHeightOfKeyboard() + viewTempHeight) - btnSubmit.height
             params.height = getMaximumHeightOfKeyboard() + viewTempHeight;
             viewSpace.setLayoutParams(params);
-            //Utils.scrollToView(this, nestedScroll, et)
 
             if (scrollDY != 0) {
                 nestedScroll.postDelayed(new Runnable() {
@@ -354,23 +354,34 @@ public class KeyboardHeightProvider extends PopupWindow {
     }
 
     //TODO in progress.
-    private View insertView(){
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
+    private View insertView() throws Exception {
 
         View viewToInsert = new View(activity);
+        viewToInsert.setId(View.generateViewId());
         int heightDefault = activity.getResources().getDimensionPixelSize(R.dimen.margin_20);
-        viewToInsert.setBackgroundResource(android.R.color.transparent);
+        viewToInsert.setBackgroundResource(android.R.color.background_dark);
 
         if(nestedScroll.getChildCount() == 0) return viewToInsert;
         View firstChild = nestedScroll.getChildAt(0);
 
         if(firstChild instanceof ConstraintLayout){
 
-            ConstraintLayout.LayoutParams layoutParams = new ConstraintLayout.LayoutParams(ConstraintLayout.LayoutParams.MATCH_PARENT, heightDefault);
-            ((ConstraintLayout) firstChild).addView(viewToInsert,layoutParams);
+            View lastChild = ((ConstraintLayout) firstChild).getChildAt(((ConstraintLayout) firstChild).getChildCount()-1);
+            if(lastChild.getId() <= 0) lastChild.setId(View.generateViewId());
+
+            ConstraintSet set = new ConstraintSet();
+            ((ConstraintLayout) firstChild).addView(viewToInsert,0);
+            set.clone((ConstraintLayout) firstChild);
+            set.connect(viewToInsert.getId(), ConstraintSet.TOP, lastChild.getId(), ConstraintSet.BOTTOM,0);
+            set.applyTo((ConstraintLayout) firstChild);
         }
         else if(firstChild instanceof LinearLayout){
             LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(ConstraintLayout.LayoutParams.MATCH_PARENT, heightDefault);
             ((LinearLayout) firstChild).addView(viewToInsert,layoutParams);
+        }
+        else{
+            throw new Exception("NesetedScrollView must have viewgroup as first child!");
         }
 
         return viewToInsert;
